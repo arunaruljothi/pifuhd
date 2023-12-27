@@ -3,7 +3,7 @@
 import os
 import random
 
-import numpy as np 
+import numpy as np
 from PIL import Image, ImageOps
 from PIL.ImageFilter import GaussianBlur
 import cv2
@@ -20,7 +20,7 @@ def crop_image(img, rect):
     top = abs(y) if y < 0 else 0
     right = abs(img.shape[1]-(x+w)) if x + w >= img.shape[1] else 0
     bottom = abs(img.shape[0]-(y+h)) if y + h >= img.shape[0] else 0
-    
+
     if img.shape[2] == 4:
         color = [0, 0, 0, 0]
     else:
@@ -64,7 +64,7 @@ def face_crop(pts):
 
     # radius = np.max(np.sqrt(((center[None] - np.stack([]))**2).sum(0))
     # radius = int(1.0*abs(center[1] - mshoulder[1]))
-    center = center.astype(np.int)
+    center = center.astype(int)
 
     x1 = center[0] - radius
     x2 = center[0] + radius
@@ -97,7 +97,7 @@ def upperbody_crop(pts):
         ps = np.stack(ps, 0)
         radius = int(0.8*np.max(np.sqrt(((ps - center[None,:])**2).reshape(-1,2).sum(1)) / np.array(ratio)))
 
-    center = center.astype(np.int)
+    center = center.astype(int)
 
     x1 = center[0] - radius
     x2 = center[0] + radius
@@ -113,7 +113,7 @@ def fullbody_crop(pts):
     cnt = sum(flags[check_id])
 
     if cnt == 0:
-        center = pts[8,:2].astype(np.int)
+        center = pts[8,:2].astype(int)
         pts = pts[pts[:,2] > 0.5][:,:2]
         radius = int(1.45*np.sqrt(((center[None,:] - pts)**2).sum(1)).max(0))
         center[1] += int(0.05*radius)
@@ -122,7 +122,7 @@ def fullbody_crop(pts):
         pmax = pts.max(0)
         pmin = pts.min(0)
 
-        center = (0.5 * (pmax[:2] + pmin[:2])).astype(np.int)
+        center = (0.5 * (pmax[:2] + pmin[:2])).astype(int)
         radius = int(0.65 * max(pmax[0]-pmin[0], pmax[1]-pmin[1]))
 
     x1 = center[0] - radius
@@ -173,7 +173,7 @@ class EvalWPoseDataset(Dataset):
         # Calib
         with open(joint_path) as json_file:
             data = json.load(json_file)
-            return len(data['people'])            
+            return len(data['people'])
 
     def get_item(self, index):
         img_path = self.img_files[index]
@@ -185,8 +185,8 @@ class EvalWPoseDataset(Dataset):
             data = json.load(json_file)
             if len(data['people']) == 0:
                 raise IOError('non human found!!')
-            
-            # if True, the person with the largest height will be chosen. 
+
+            # if True, the person with the largest height will be chosen.
             # set to False for multi-person processing
             if True:
                 selected_data = data['people'][0]
@@ -235,7 +235,7 @@ class EvalWPoseDataset(Dataset):
             im = im[:,:,3:] * im[:,:,:3] + 0.5 * (1.0 - im[:,:,3:])
             im = (255.0 * im).astype(np.uint8)
         h, w = im.shape[:2]
-        
+
         intrinsic = np.identity(4)
 
         trans_mat = np.identity(4)
@@ -249,14 +249,14 @@ class EvalWPoseDataset(Dataset):
         trans_mat[3,3] = 1.0
         trans_mat[0, 3] = -scale*(rect[0] + rect[2]//2 - w//2) * scale_im2ndc
         trans_mat[1, 3] = scale*(rect[1] + rect[3]//2 - h//2) * scale_im2ndc
-        
+
         intrinsic = np.matmul(trans_mat, intrinsic)
         im_512 = cv2.resize(im, (512, 512))
         im = cv2.resize(im, (self.load_size, self.load_size))
 
         image_512 = Image.fromarray(im_512[:,:,::-1]).convert('RGB')
         image = Image.fromarray(im[:,:,::-1]).convert('RGB')
-        
+
         B_MIN = np.array([-1, -1, -1])
         B_MAX = np.array([1, 1, 1])
         projection_matrix = np.identity(4)

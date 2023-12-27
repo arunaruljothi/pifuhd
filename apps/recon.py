@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 import time
-import json 
+import json
 import numpy as np
 import cv2
 import random
@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib
 from numpy.linalg import inv
+from rich import print
 
 from lib.options import BaseOptions
 from lib.mesh_util import save_obj_mesh_with_color, reconstruction
@@ -45,7 +46,7 @@ def gen_mesh(res, net, cuda, data, save_path, thresh=0.5, use_octree=True, compo
             image_tensor_global = torch.cat([image_tensor_global, net.netG.nmlB], 0)
     except:
         pass
-    
+
     b_min = data['b_min']
     b_max = data['b_max']
     try:
@@ -76,9 +77,12 @@ def gen_mesh(res, net, cuda, data, save_path, thresh=0.5, use_octree=True, compo
             nml = net.nmls.detach().cpu().numpy()[0] * 0.5 + 0.5
             color[left:right] = nml.T
 
+
+
         save_obj_mesh_with_color(save_path, verts, faces, color)
     except Exception as e:
         print(e)
+        exit(1)
 
 
 def gen_mesh_imgColor(res, net, cuda, data, save_path, thresh=0.5, use_octree=True, components=False):
@@ -138,7 +142,7 @@ def recon(opt, use_rect=False):
         opt.resume_epoch = 0
     else:
         state_dict_path = '%s/%s_train_epoch_%d' % (opt.checkpoints_path, opt.name, opt.resume_epoch)
-    
+
     start_id = opt.start_id
     end_id = opt.end_id
 
@@ -147,13 +151,13 @@ def recon(opt, use_rect=False):
     state_dict = None
     if state_dict_path is not None and os.path.exists(state_dict_path):
         print('Resuming from ', state_dict_path)
-        state_dict = torch.load(state_dict_path, map_location=cuda)    
+        state_dict = torch.load(state_dict_path, map_location=cuda)
         print('Warning: opt is overwritten.')
         dataroot = opt.dataroot
         resolution = opt.resolution
         results_path = opt.results_path
         loadSize = opt.loadSize
-        
+
         opt = state_dict['opt']
         opt.dataroot = dataroot
         opt.resolution = resolution
@@ -161,7 +165,7 @@ def recon(opt, use_rect=False):
         opt.loadSize = loadSize
     else:
         raise Exception('failed loading state dict!', state_dict_path)
-    
+
     # parser.print_options(opt)
 
     if use_rect:
@@ -199,14 +203,13 @@ def recon(opt, use_rect=False):
         for i in tqdm(range(start_id, end_id)):
             if i >= len(test_dataset):
                 break
-            
+
             # for multi-person processing, set it to False
             if True:
                 test_data = test_dataset[i]
 
                 save_path = '%s/%s/recon/result_%s_%d.obj' % (opt.results_path, opt.name, test_data['name'], opt.resolution)
 
-                print(save_path)
                 gen_mesh(opt.resolution, netMR, cuda, test_data, save_path, components=opt.use_compose)
             else:
                 for j in range(test_dataset.get_n_person(i)):
@@ -221,4 +224,3 @@ def reconWrapper(args=None, use_rect=False):
 
 if __name__ == '__main__':
     reconWrapper()
-  
