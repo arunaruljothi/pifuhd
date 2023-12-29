@@ -28,4 +28,3 @@ cmd = ['--dataroot', args.input_path, '--results_path', args.out_path,\
        args.ckpt_path,\
        '--start_id', '%d' % start_id, '--end_id', '%d' % end_id]
 reconWrapper(cmd, args.use_rect)
-

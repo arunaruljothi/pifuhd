@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F 
+import torch.nn.functional as F
 from .BasePIFuNet import BasePIFuNet
 from .MLP import MLP
 from .DepthNormalizer import DepthNormalizer
@@ -16,8 +16,8 @@ class HGPIFuMRNet(BasePIFuNet):
     HGPIFu uses stacked hourglass as an image encoder.
     '''
 
-    def __init__(self, 
-                 opt, 
+    def __init__(self,
+                 opt,
                  netG,
                  projection_mode='orthogonal',
                  criteria={'occ': nn.MSELoss()}
@@ -34,11 +34,11 @@ class HGPIFuMRNet(BasePIFuNet):
                 in_ch += 3
             if netG.opt.use_back_normal:
                 in_ch += 3
-        except:
+        except Exception:
             pass
 
         self.opt = opt
-        self.image_filter = HGFilter(opt.num_stack, opt.hg_depth, in_ch, opt.hg_dim, 
+        self.image_filter = HGFilter(opt.num_stack, opt.hg_depth, in_ch, opt.hg_dim,
                                      opt.norm, 'no_down', False)
 
         self.mlp = MLP(
@@ -61,7 +61,7 @@ class HGPIFuMRNet(BasePIFuNet):
         self.netG = netG
 
     def train(self, mode=True):
-        r"""Sets the module in training mode."""      
+        r"""Sets the module in training mode."""
         self.training = mode
         for module in self.children():
             module.train(mode)
@@ -95,12 +95,12 @@ class HGPIFuMRNet(BasePIFuNet):
                 nmls.append(self.netG.nmlF)
             if self.netG.opt.use_back_normal:
                 nmls.append(self.netG.nmlB)
-        except:
+        except Exception:
             pass
 
         if len(nmls):
             nmls = nn.Upsample(size=(self.opt.loadSizeBig,self.opt.loadSizeBig), mode='bilinear', align_corners=True)(torch.cat(nmls,1))
-            
+
             # it's kind of damn way.
             if rect is None:
                 images = torch.cat([images, nmls[:,None].expand(-1,images.size(1),-1,-1,-1)], 2)
@@ -117,7 +117,7 @@ class HGPIFuMRNet(BasePIFuNet):
         self.im_feat_list, self.normx = self.image_filter(images.view(-1,*images.size()[2:]))
         if not self.training:
             self.im_feat_list = [self.im_feat_list[-1]]
-        
+
     def query(self, points, calib_local, calib_global=None, transforms=None, labels=None):
         '''
         given 3d points, we obtain 2d projection of these given the camera matrices.
@@ -148,7 +148,7 @@ class HGPIFuMRNet(BasePIFuNet):
         newlabels = []
         for i in range(B):
             xyz = self.projection(points[:,i], calib_local[:,i], transforms)
-            
+
             xy = xyz[:, :2, :]
 
             # if the point is outside bounding box, return outside.
@@ -168,7 +168,7 @@ class HGPIFuMRNet(BasePIFuNet):
             z_feat = self.netG.phi
             if not self.opt.train_full_pifu:
                 z_feat = z_feat.detach()
-                        
+
             intermediate_preds_list = []
             for j, im_feat in enumerate(self.im_feat_list):
                 point_local_feat_list = [self.index(im_feat.view(-1,B,*im_feat.size()[1:])[:,i], xy), z_feat]
@@ -183,7 +183,7 @@ class HGPIFuMRNet(BasePIFuNet):
         self.preds = torch.cat(preds,0)
         self.preds_interm = torch.cat(preds_interm, 1) # first dim is for intermediate predictions
         self.preds_low = torch.cat(preds_low, 1) # first dim is for intermediate predictions
-        
+
         if labels is not None:
             self.w = torch.cat(ws,0)
             self.gamma = torch.cat(gammas,0)
@@ -201,7 +201,7 @@ class HGPIFuMRNet(BasePIFuNet):
             transforms: [B1, 2, 3] image space coordinate transforms
             labels: [B1, B2, 3, N] ground truth normal
             delta: perturbation for finite difference
-            fd_type: finite difference type (forward/backward/central) 
+            fd_type: finite difference type (forward/backward/central)
         '''
         B = calib_local.size(1)
 
@@ -231,7 +231,7 @@ class HGPIFuMRNet(BasePIFuNet):
             if not self.opt.train_full_pifu:
                 z_feat = z_feat.detach()
 
-            point_local_feat_list = [self.index(im_feat[:,i], xy), z_feat]            
+            point_local_feat_list = [self.index(im_feat[:,i], xy), z_feat]
             point_local_feat = torch.cat(point_local_feat_list, 1)
             pred = self.mlp(point_local_feat)[0]
 
@@ -246,7 +246,7 @@ class HGPIFuMRNet(BasePIFuNet):
             nml = F.normalize(nml, dim=1, eps=1e-8)
 
             nmls.append(nml)
-        
+
         self.nmls = torch.stack(nmls,1).view(-1,3,points.size(3))
 
     def get_im_feat(self):
@@ -285,7 +285,7 @@ class HGPIFuMRNet(BasePIFuNet):
 
             if self.nmls is not None and self.labels_nml is not None:
                 error['Err(nml:fine)'] = self.criteria['nml'](self.nmls, self.labels_nml)
-        
+
         return error
 
 
@@ -296,7 +296,7 @@ class HGPIFuMRNet(BasePIFuNet):
         if points_nml is not None and labels_nml is not None:
             self.calc_normal(points_nml, calib_local, calib_global, labels=labels_nml)
         res = self.get_preds()
-            
+
         err = self.get_error()
 
         return err, res

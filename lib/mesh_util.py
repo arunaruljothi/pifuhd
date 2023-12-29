@@ -83,7 +83,7 @@ def reconstruction(net, cuda, calib_tensor,
         if np.linalg.det(trans_mat[:3, :3]) < 0.0:
             faces = faces[:,::-1]
         return verts, faces, normals, values
-    except:
+    except Exception:
         print('error cannot marching cubes')
         return -1
 

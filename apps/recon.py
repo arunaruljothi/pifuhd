@@ -44,7 +44,7 @@ def gen_mesh(res, net, cuda, data, save_path, thresh=0.5, use_octree=True, compo
             image_tensor_global = torch.cat([image_tensor_global, net.netG.nmlF], 0)
         if net.netG.netB is not None:
             image_tensor_global = torch.cat([image_tensor_global, net.netG.nmlB], 0)
-    except:
+    except Exception:
         pass
 
     b_min = data['b_min']
@@ -98,7 +98,7 @@ def gen_mesh_imgColor(res, net, cuda, data, save_path, thresh=0.5, use_octree=Tr
             image_tensor_global = torch.cat([image_tensor_global, net.netG.nmlF], 0)
         if net.netG.netB is not None:
             image_tensor_global = torch.cat([image_tensor_global, net.netG.nmlB], 0)
-    except:
+    except Exception:
         pass
 
     b_min = data['b_min']
