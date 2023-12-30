@@ -24,29 +24,29 @@ SOFTWARE.
 import torch
 from torch.nn import init
 import torch.nn as nn
-import torch.nn.functional as F 
+import torch.nn.functional as F
 import functools
 
 def load_state_dict(state_dict, net):
     model_dict = net.state_dict()
 
-    pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}                    
+    pretrained_dict = {k: v for k, v in state_dict.items() if k in model_dict}
 
-    for k, v in pretrained_dict.items():                      
+    for k, v in pretrained_dict.items():
         if v.size() == model_dict[k].size():
             model_dict[k] = v
 
     not_initialized = set()
-            
+
     for k, v in model_dict.items():
         if k not in pretrained_dict or v.size() != pretrained_dict[k].size():
             not_initialized.add(k.split('.')[0])
-    
+
     print('not initialized', sorted(not_initialized))
-    net.load_state_dict(model_dict) 
+    net.load_state_dict(model_dict)
 
     return net
-    
+
 def conv3x3(in_planes, out_planes, strd=1, padding=1, bias=False):
     return nn.Conv2d(in_planes, out_planes, kernel_size=3,
                      stride=strd, padding=padding, bias=bias)
@@ -72,7 +72,7 @@ def init_weights(net, init_type='normal', init_gain=0.02):
             init.normal_(m.weight.data, 1.0, init_gain)
             init.constant_(m.bias.data, 0.0)
 
-    print('initialize network with %s' % init_type)
+    print(f'initialize network {type(net)} with init type {init_type}')
     net.apply(init_func)
 
 def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
@@ -101,7 +101,7 @@ class CustomBCELoss(nn.Module):
 
         if w is not None:
             if len(w.size()) == 1:
-                w = w[:,None,None] 
+                w = w[:,None,None]
             return (loss * w).mean()
         else:
             return loss.mean()
@@ -146,7 +146,7 @@ def createMLP(dims, norm='bn', activation='relu', last_op=nn.Tanh(), dropout=Fal
             mlp += [  nn.utils.weight_norm(nn.Linear(dims[i-1], dims[i]), name='weight')]
         if norm == 'none':
             mlp += [ nn.Linear(dims[i-1], dims[i])]
-        
+
         if i != len(dims)-1:
             if act is not None:
                 mlp += [act]
